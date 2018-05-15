@@ -25,6 +25,7 @@ mylcd = I2C_LCD_driver.lcd()
 positionY = 0
 positionX = 0
 mesajePosition = 0
+inundatiiPosition = 0
 inundatiiFlag = 0
 doNothing = 0
 #functions
@@ -65,6 +66,7 @@ def show_humidity(pos):
 
 def displayThis(posx, posy, prior):
     global mesajePosition
+    global inundatiiPosition
     if prior == 0 and posx == 0:
         if posy == 0:
             mylcd.lcd_display_string("Mesaje          ", 2)
@@ -88,13 +90,25 @@ def displayThis(posx, posy, prior):
         lines = f.readlines()
         if len(lines) > mesajePosition:
             mylcd.lcd_display_string(lines[mesajePosition][:-1] + "                ", 1)
-        if len(lines) > (mesajePosition +1):
+        if len(lines) > (mesajePosition + 1):
             mylcd.lcd_display_string(lines[mesajePosition + 1][:-1] + "                ", 2)
         else:
             mylcd.lcd_display_string("                ", 2)
         if len(lines) <= mesajePosition:
             mesajePosition = -1
         f.close()
+    if prior == 3 and posx == 1:
+        fi = open("inundatii.txt" , "r")
+        linesi = fi.readlines()
+        if len(linesi) > inundatiiPosition:
+            mylcd.lcd_display_string(linesi[inundatiiPosition][:-1] + "                ", 1)
+        if len(linesi) > (inundatiiPosition + 1):
+            mylcd.lcd_display_string(linesi[inundatiiPosition + 1][:-1] + "                ", 2)
+        else:
+            mylcd.lcd_display_string("                ", 2)
+        if len(linesi) <= inundatiiPosition:
+            inundatiiPosition = -1
+        fi.close()
 
 def select_to_display(posx, posy):
     if posy == 0 and posx == 0:
@@ -109,9 +123,10 @@ def select_to_display(posx, posy):
     if posy == 3 and posx == 0:
         displayThis(0, 3, 1)
         displayThis(0, 0, 0)
-
     if posy == 0 and posx == 1:
         displayThis(1, 0, 2)
+    if posy == 3 and posx == 1:
+        displayThis(1, 0, 3)
 
 #loop
 while True:
@@ -120,6 +135,8 @@ while True:
             positionY += 1
         if positionX == 1 and positionY == 0:
             mesajePosition += 1
+        if positionX == 1 and positionY == 3:
+            inundatiiPosition += 1
     if button_read() == 2:
         positionX += 1
     if button_read() == 3:
@@ -129,11 +146,13 @@ while True:
             positionY -= 1
         if positionX == 1 and positionY == 0:
             mesajePosition -= 1
+        if positionX == 1 and positionY == 3:
+            inundatiiPosition -= 1
     if read_water() == True:
         turn_on_led()
         if inundatiiFlag == 0:
             now = datetime.datetime.now()
-            takeTime = '{:%d/%m/%y %H:%M:%S}'.format(now)
+            takeTime = '{:%d/%m %H:%M:%S}'.format(now)
             fr = open("inundatii.txt", "r+")
             for line in fr.readlines():
                 doNothing = 0;
@@ -155,6 +174,9 @@ while True:
 
     if mesajePosition < 0:
         mesajePosition = 0
+    if inundatiiPosition < 0:
+        inundatiiPosition = 0
+
     select_to_display(positionX ,positionY)
 
     time.sleep(0.2)
