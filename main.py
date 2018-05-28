@@ -28,6 +28,12 @@ mesajePosition = 0
 inundatiiPosition = 0
 inundatiiFlag = 0
 doNothing = 0
+when_to_write = 0
+controlPosition = True
+controlTemperatura = 16
+controlTemperaturaAuto = 0
+resultForUse = 0
+
 #functions
 
 def button_read():
@@ -55,18 +61,15 @@ def turn_off_led():
     GPIO.output(9,GPIO.LOW)
 
 def show_temp(pos):
-    result_temp = instance_of_temp.read()
+    global resultForUse
+    result_temp = resultForUse
     if result_temp.is_valid():
         mylcd.lcd_display_string("Temperatura " + str(result_temp.temperature) + "C", pos)
-
-def show_humidity(pos):
-    result_temp = instance_of_temp.read()
-    if result_temp.is_valid():
-        mylcd.lcd_display_string("Umiditate   " + str(result_temp.humidity) + "%", pos)
 
 def displayThis(posx, posy, prior):
     global mesajePosition
     global inundatiiPosition
+    global controlTemperatura
     if prior == 0 and posx == 0:
         if posy == 0:
             mylcd.lcd_display_string("Mesaje          ", 2)
@@ -109,6 +112,16 @@ def displayThis(posx, posy, prior):
         if len(linesi) <= inundatiiPosition:
             inundatiiPosition = -1
         fi.close()
+    if prior == 4 and posx == 1:
+        if not(controlPosition):
+            mylcd.lcd_display_string("Automat        ", 1)
+            mylcd.lcd_display_string("Manual         ", 2)
+        if controlPosition:
+            mylcd.lcd_display_string("Automat        ", 2)
+            mylcd.lcd_display_string("Manual         ", 1)
+    if prior == 5 and posy == 2 and posx == 2:
+        mylcd.lcd_display_string("   -   " + str(controlTemperatura) + "   +                 ", 1)
+        mylcd.lcd_display_string("                        ", 2)
 
 def select_to_display(posx, posy):
     if posy == 0 and posx == 0:
@@ -127,9 +140,14 @@ def select_to_display(posx, posy):
         displayThis(1, 0, 2)
     if posy == 3 and posx == 1:
         displayThis(1, 0, 3)
+    if posy == 1 and posx == 1:
+        displayThis(1, 0, 4)
+    if posy == 1 and posx == 2 and controlPosition:
+        displayThis(2, 2, 5)
 
 #loop
 while True:
+    resultForUse = instance_of_temp.read()
     if button_read() == 1:
         if positionX == 0:
             positionY += 1
@@ -137,8 +155,13 @@ while True:
             mesajePosition += 1
         if positionX == 1 and positionY == 3:
             inundatiiPosition += 1
+        if positionX == 1 and positionY == 1:
+            controlPosition = not(controlPosition)
+        if positionX == 2 and positionY == 1 and controlPosition:
+            controlTemperatura +=1
     if button_read() == 2:
         positionX += 1
+            
     if button_read() == 3:
         positionX -= 1
     if button_read() == 4:
@@ -148,8 +171,11 @@ while True:
             mesajePosition -= 1
         if positionX == 1 and positionY == 3:
             inundatiiPosition -= 1
+        if positionX == 1 and positionY == 1:
+            controlPosition = not(controlPosition)
+        if positionX == 2 and positionY == 1 and controlPosition:
+            controlTemperatura -=1
     if read_water() == True:
-        turn_on_led()
         if inundatiiFlag == 0:
             now = datetime.datetime.now()
             takeTime = '{:%d/%m %H:%M:%S}'.format(now)
@@ -160,7 +186,6 @@ while True:
             fr.close()
             inundatiiFlag = 1;
     else:
-        turn_off_led()
         inundatiiFlag = 0;
     if positionY > 3:
         positionY = 0
@@ -170,7 +195,10 @@ while True:
     if positionX < 0:
         positionX = 0
     if positionX > 1:
-        positionX = 1
+        if positionY == 1 and controlPosition:
+            positionX = 2
+        else:
+            positionX = 1
 
     if mesajePosition < 0:
         mesajePosition = 0
@@ -178,5 +206,31 @@ while True:
         inundatiiPosition = 0
 
     select_to_display(positionX ,positionY)
-
+        
     time.sleep(0.2)
+    
+    if not(controlPosition):
+        fcr = open("control.txt", "r+")
+        readStreamTxt = fcr.read()
+        controlTemperaturaAuto = int(readStreamTxt)
+        fcr.close()
+    
+    if resultForUse.is_valid():
+        if controlPosition: 
+            if resultForUse.temperature < controlTemperatura:
+                turn_on_led()
+            else:
+                turn_off_led()
+        else: 
+            if resultForUse.temperature < controlTemperaturaAuto:
+                turn_on_led()
+            else:
+                turn_off_led()
+        
+    if when_to_write > 20 and resultForUse.is_valid():
+        ft = open("temperatura.txt", "r+")
+        ft.write(str(resultForUse.temperature))
+        ft.close()
+        when_to_write = 0
+    when_to_write += 1
+
