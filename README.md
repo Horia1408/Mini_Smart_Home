@@ -2,6 +2,7 @@
 State: Done
 
 This mini smart home source code is for a project from university.
+
 The project permit to a user to navigate into a menu where it could be checked the home state 
 and to read messages transmitted from a web interface.
 
