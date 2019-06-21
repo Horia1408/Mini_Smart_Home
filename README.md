@@ -1,7 +1,7 @@
 # Mini_Smart_Home
 State: Done
 
-This mini smart home source code is for a project from university.
+This mini smart home source code is for a project from university.\n
 The project permit to a user to navigate into a menu where it could
 be checked the home stateand to read messages transmitted from a web
 interface.
